@@ -1,73 +1,166 @@
 # ClawMemory
 
-✨ **DreamClaw your AI’s memory**—pack it every night so your agent never forgets a thing! ✨
+✨ **DreamClaw your AI's memory**—pack it every night so your agent never forgets a thing! ✨
 
-ClawMemory is a lightweight, open-source memory synchronization toolkit designed for AI agents. It implements a three-layer, incremental memory architecture with semantic search, enabling agents to maintain persistent context without overloading their prompt windows.
-
-Key features:
-
-- **Three-layer memory**: Daily context sync, weekly knowledge compounding, and hourly micro-sync safety net.
-- **Nightly full refresh**: Runs `qmd update && qmd embed` to keep the semantic index fresh—simple, reliable, and cost-effective for daily memory files.
-- **Semantic search**: Built on `qmd` (BM25 + vector search + reranking) to efficiently retrieve relevant memory snippets.
-- **Healthchecks & alerts**: Monitor sync jobs and alert on repeated failures to Microsoft Teams.
-- **Easy to deploy**: Cron-based jobs, simple Python scripts, and clear configuration.
+ClawMemory is a lightweight, open-source memory synchronization toolkit for AI agents. Inspired by how humans consolidate memories during sleep, it implements a **three-layer architecture** that keeps your agent's context fresh without overloading prompt windows.
 
 ---
 
-## Quick Start
+## 🧠 How It Works
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Three-Layer Memory                        │
+├─────────────────────────────────────────────────────────────┤
+│  Layer 1: Daily Context Sync (Every Night)                  │
+│  └─ Capture the day's conversations → memory/YYYY-MM-DD.md  │
+│                                                             │
+│  Layer 2: Weekly Knowledge Compound (Every Sunday)          │
+│  └─ Distill weekly insights → Update MEMORY.md              │
+│                                                             │
+│  Layer 3: Hourly Micro-Sync (Safety Net)                    │
+│  └─ Lightweight checks during work hours                    │
+├─────────────────────────────────────────────────────────────┤
+│  Bottom Layer: Semantic Search (qmd)                        │
+│  └─ BM25 + Vector Search + Reranking                        │
+│  └─ Query past memories instantly                           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Key insight**: Don't stuff everything into the context window. Keep a curated "cheat sheet" (MEMORY.md) always loaded, and search the archive when needed.
+
+---
+
+## ✨ Features
+
+- **Nightly full refresh**: Runs `qmd update && qmd embed` to keep semantic index fresh
+- **Flexible alerts**: Webhook (Slack/Discord) or Microsoft Teams
+- **Failure tracking**: Auto-alerts after N consecutive failures
+- **Zero dependencies on specific AI platforms**: Works with any agent that uses markdown files
+
+---
+
+## 📦 Prerequisites
+
+### Install qmd
+
+ClawMemory uses [qmd](https://github.com/jjuliano/qmd) for semantic search. Install it first:
+
+```bash
+npm install -g qmd
+# or
+cargo install qmd
+```
+
+Initialize a collection in your workspace:
+
+```bash
+cd /path/to/your/workspace
+qmd init workspace "**/*.md"
+```
+
+---
+
+## 🚀 Quick Start
 
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/<your-org>/clawmemory.git
+git clone https://github.com/alvindeanz/clawmemory.git
 cd clawmemory
 ```
 
-### 2. Install dependencies
-
-Use your preferred Python environment:
+### 2. Install Python dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Configure Environment Variables
-
-Set the following variables (example for bash):
+### 3. Configure environment variables
 
 ```bash
-export TEAM_TENANT_ID=<your-tenant-id>
-export TEAM_CLIENT_ID=<your-client-id>
-export TEAM_CLIENT_SECRET=<your-client-secret>
-export TEAM_REFRESH_TOKEN=<your-refresh-token>
-export TEAM_ID=<your-team-id>
-export TEAM_CHANNEL_ID=<your-channel-id>
-export FAIL_THRESHOLD=2  # optional, default=2
+# State directory (optional, default: ~/.clawmemory)
+export CLAWMEMORY_STATE_DIR=~/.clawmemory
+
+# Alert backend: "webhook" or "teams"
+export ALERT_BACKEND=webhook
+
+# For Slack/Discord/Generic webhook:
+export ALERT_WEBHOOK_URL=https://hooks.slack.com/services/xxx
+
+# Failure threshold (optional, default: 2)
+export FAIL_THRESHOLD=2
 ```
+
+<details>
+<summary>📋 Microsoft Teams Configuration</summary>
+
+```bash
+export ALERT_BACKEND=teams
+export TEAM_TENANT_ID=your-tenant-id
+export TEAM_CLIENT_ID=your-client-id
+export TEAM_CLIENT_SECRET=your-client-secret
+export TEAM_REFRESH_TOKEN=your-refresh-token
+export TEAM_ID=your-team-id
+export TEAM_CHANNEL_ID=your-channel-id
+```
+</details>
 
 ### 4. Make scripts executable
 
 ```bash
-chmod +x scripts/qmd_incremental_embed.py scripts/healthcheck_alert.py
+chmod +x scripts/qmd_refresh.py scripts/healthcheck_alert.py
 ```
 
-### 5. Set up cron jobs
+### 5. Set up cron job
 
-Edit your crontab (`crontab -e`) and add:
+```bash
+crontab -e
+```
+
+Add:
 
 ```cron
-# Nightly full QMD refresh (23:00 Asia/Taipei)
-0 23 * * * cd /path/to/clawmemory && ./scripts/qmd_incremental_embed.py >> logs/daily_embed.log 2>&1 && ./scripts/healthcheck_alert.py
-
-# Weekly memory compound (Sunday 22:00 Asia/Taipei)
-0 22 * * 0 cd /path/to/clawmemory && crabot-agent-run "WEEKLY MEMORY COMPOUND ..." >> logs/weekly_compound.log 2>&1 && ./scripts/healthcheck_alert.py
-
-# Hourly micro-sync (10,13,16,19,22 Asia/Taipei)
-0 10,13,16,19,22 * * * cd /path/to/clawmemory && crabot-agent-run "MICRO-SYNC ..." >> logs/micro_sync.log 2>&1 && ./scripts/healthcheck_alert.py
+# Nightly QMD refresh (23:00 local time)
+0 23 * * * cd /path/to/workspace && /path/to/clawmemory/scripts/qmd_refresh.py && /path/to/clawmemory/scripts/healthcheck_alert.py
 ```
 
-### 6. Enjoy persistent AI memory!
+### 6. Enjoy persistent AI memory! 🎉
 
 ---
 
-For detailed documentation, see [USAGE.md](docs/USAGE.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
+## 📁 Recommended Workspace Structure
+
+```
+your-workspace/
+├── MEMORY.md              # Curated long-term memory (injected every session)
+├── AGENTS.md              # Agent behavior rules
+├── memory/
+│   ├── 2026-02-07.md      # Daily logs
+│   ├── 2026-02-08.md
+│   ├── 2026-02-09.md
+│   └── projects.md        # Long-term reference files
+└── .clawmemory/           # State files (auto-created)
+    └── refresh_state.json
+```
+
+---
+
+## 🔧 Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `qmd_refresh.py` | Runs full `qmd update && qmd embed`, tracks success/failure |
+| `healthcheck_alert.py` | Checks failure count, sends alert if threshold exceeded |
+
+---
+
+## 🤝 Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+---
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE)

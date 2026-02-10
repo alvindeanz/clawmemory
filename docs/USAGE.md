@@ -1,72 +1,135 @@
 # ClawMemory Usage Guide
 
-This document provides detailed usage instructions and configuration examples for ClawMemory.
+## Overview
 
-## Directory Layout
+ClawMemory helps AI agents maintain persistent memory across sessions using a three-layer architecture inspired by human sleep-based memory consolidation.
 
-```
-clawmemory/
-├── memory/                # AI agent memory logs (daily markdown files)
-├── scripts/
-│   ├── qmd_incremental_embed.py
-│   └── healthcheck_alert.py
-├── docs/
-│   └── USAGE.md
-├── pyproject.toml
-├── requirements.txt
-├── README.md
-├── LICENSE
-└── .github/
-```
-
-## Memory Directory
-
-- Place your daily `.md` logs under `memory/YYYY-MM-DD.md`.
-- These files are appended by your agent or cron jobs.
+---
 
 ## Scripts
 
-### qmd_incremental_embed.py
+### qmd_refresh.py
 
-Incrementally embed new lines from `memory/YYYY-MM-DD.md` into the QMD index.
+Refreshes the semantic search index by running:
+1. `qmd update` - Scans for new/changed files
+2. `qmd embed` - Generates vector embeddings
 
+**Usage:**
 ```bash
-./scripts/qmd_incremental_embed.py
+./scripts/qmd_refresh.py
 ```
+
+**Exit codes:**
+- `0` - Success
+- `1` - Failure (also increments failure counter)
+
+**State file:** `~/.clawmemory/refresh_state.json`
+```json
+{
+  "failures": 0,
+  "last_success": "2026-02-11T23:00:00",
+  "last_failure": null
+}
+```
+
+---
 
 ### healthcheck_alert.py
 
-Monitor failure counts across sync jobs and send alerts to Microsoft Teams.
+Checks failure count and sends alerts when threshold is exceeded.
 
+**Usage:**
 ```bash
 ./scripts/healthcheck_alert.py
 ```
 
-## Configuration
+**Alert backends:**
 
-### Environment Variables
+| Backend | Env Var | Example |
+|---------|---------|---------|
+| Webhook | `ALERT_WEBHOOK_URL` | Slack, Discord, custom |
+| Teams | `TEAM_*` vars | Microsoft Teams via Graph API |
 
-```bash
-export TEAM_TENANT_ID=
-export TEAM_CLIENT_ID=
-export TEAM_CLIENT_SECRET=
-export TEAM_REFRESH_TOKEN=
-export TEAM_ID=
-export TEAM_CHANNEL_ID=
-export FAIL_THRESHOLD=2
-```
+---
 
-### Cron Jobs
+## Environment Variables
 
-Add to your `crontab -e`:
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CLAWMEMORY_STATE_DIR` | `~/.clawmemory` | Where to store state files |
+| `ALERT_BACKEND` | `webhook` | Alert method: `webhook` or `teams` |
+| `ALERT_WEBHOOK_URL` | - | Webhook URL for Slack/Discord/custom |
+| `FAIL_THRESHOLD` | `2` | Consecutive failures before alerting |
 
+### Teams-specific variables
+
+| Variable | Description |
+|----------|-------------|
+| `TEAM_TENANT_ID` | Azure AD tenant ID |
+| `TEAM_CLIENT_ID` | App client ID |
+| `TEAM_CLIENT_SECRET` | App client secret |
+| `TEAM_REFRESH_TOKEN` | OAuth refresh token |
+| `TEAM_ID` | Teams team ID |
+| `TEAM_CHANNEL_ID` | Channel ID for alerts |
+
+---
+
+## Cron Examples
+
+### Basic nightly refresh
 ```cron
-# Daily embed (23:00 Asia/Taipei)
-0 23 * * * cd /path/to/clawmemory && ./scripts/qmd_incremental_embed.py >> logs/daily_embed.log 2>&1 && ./scripts/healthcheck_alert.py
+0 23 * * * cd /workspace && /path/to/scripts/qmd_refresh.py && /path/to/scripts/healthcheck_alert.py
 ```
 
-Adjust schedules for weekly and hourly micro-sync.
+### With logging
+```cron
+0 23 * * * cd /workspace && /path/to/scripts/qmd_refresh.py >> /var/log/clawmemory.log 2>&1 && /path/to/scripts/healthcheck_alert.py
+```
 
-## Contributing
+---
 
-See [CONTRIBUTING.md](../CONTRIBUTING.md).
+## Integrating with AI Agents
+
+### OpenClaw / Clawdbot
+
+Add to your `AGENTS.md`:
+
+```markdown
+## Memory Retrieval (MANDATORY)
+
+Never read MEMORY.md or memory/*.md in full for lookups. Use qmd:
+
+1. `qmd query "<question>"` — combined search with reranking
+2. `qmd get <file>:<line> -l 20` — pull only the snippet you need
+3. Only if qmd returns nothing: fall back to reading files
+```
+
+### Generic LLM Agents
+
+1. Inject `MEMORY.md` into system prompt at session start
+2. For detailed lookups, have the agent call `qmd query "..."` 
+3. Use ClawMemory cron to keep the index fresh
+
+---
+
+## Troubleshooting
+
+### "qmd: command not found"
+Install qmd first:
+```bash
+npm install -g qmd
+```
+
+### "No state file found"
+Run `qmd_refresh.py` at least once to create the state file.
+
+### Webhook not working
+- Check `ALERT_WEBHOOK_URL` is set correctly
+- Test with curl: `curl -X POST -H "Content-Type: application/json" -d '{"text":"test"}' $ALERT_WEBHOOK_URL`
+
+---
+
+## See Also
+
+- [README.md](../README.md) - Quick start guide
+- [CONTRIBUTING.md](../CONTRIBUTING.md) - How to contribute
