@@ -7,7 +7,7 @@ ClawMemory is a lightweight, open-source memory synchronization toolkit designed
 Key features:
 
 - **Three-layer memory**: Daily context sync, weekly knowledge compounding, and hourly micro-sync safety net.
-- **Incremental indexing**: Only new content is embedded into the semantic index to save compute.
+- **Nightly full refresh**: Runs `qmd update && qmd embed` to keep the semantic index fresh—simple, reliable, and cost-effective for daily memory files.
 - **Semantic search**: Built on `qmd` (BM25 + vector search + reranking) to efficiently retrieve relevant memory snippets.
 - **Healthchecks & alerts**: Monitor sync jobs and alert on repeated failures to Microsoft Teams.
 - **Easy to deploy**: Cron-based jobs, simple Python scripts, and clear configuration.
@@ -56,7 +56,7 @@ chmod +x scripts/qmd_incremental_embed.py scripts/healthcheck_alert.py
 Edit your crontab (`crontab -e`) and add:
 
 ```cron
-# Daily incremental embed (23:00 Asia/Taipei)
+# Nightly full QMD refresh (23:00 Asia/Taipei)
 0 23 * * * cd /path/to/clawmemory && ./scripts/qmd_incremental_embed.py >> logs/daily_embed.log 2>&1 && ./scripts/healthcheck_alert.py
 
 # Weekly memory compound (Sunday 22:00 Asia/Taipei)
