@@ -117,7 +117,14 @@ Never read MEMORY.md or memory/*.md in full for lookups. Use qmd:
 ### "qmd: command not found"
 Install qmd first:
 ```bash
-npm install -g qmd
+bun install -g @anthropics/qmd
+```
+
+### "qmd update runs but nothing is indexed"
+You need to create a collection first:
+```bash
+cd /path/to/your/workspace
+qmd collection add . --name workspace --mask "**/*.md"
 ```
 
 ### "No state file found"
