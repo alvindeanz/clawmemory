@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=42","wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "clawmemory"
+version = "0.1.0"
+authors = [
+  { name = "HornTech", email = "aiden@horntech.co.nz" }
+]
+description = "✨ DreamClaw your AI’s memory—three-layer, sleep-synced architecture so your agent never forgets! ✨"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.8"
+
+[project.scripts]
+qmd-incremental-embed = "scripts.qmd_incremental_embed:main"
+healthcheck-alert = "scripts.healthcheck_alert:main"
