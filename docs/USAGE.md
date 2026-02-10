@@ -117,8 +117,9 @@ Never read MEMORY.md or memory/*.md in full for lookups. Use qmd:
 ### "qmd: command not found"
 Install qmd first:
 ```bash
-bun install -g @anthropics/qmd
+bun install -g https://github.com/tobi/qmd
 ```
+Or ensure `qmd` is in your PATH.
 
 ### "qmd update runs but nothing is indexed"
 You need to create a collection first:

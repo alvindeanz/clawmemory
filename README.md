@@ -46,11 +46,16 @@ ClawMemory is a lightweight, open-source memory synchronization toolkit for AI a
 
 ### Install qmd
 
-ClawMemory uses [qmd](https://github.com/anthropics/qmd) for semantic search. Install it first:
+ClawMemory uses [qmd](https://github.com/tobi/qmd) for semantic search. Install it first:
 
 ```bash
-bun install -g @anthropics/qmd
+# Option 1: Install via bun (recommended)
+bun install -g https://github.com/tobi/qmd
+
+# Option 2: If qmd is already in your PATH, skip this step
 ```
+
+> 💡 Verify installation: `qmd --help` should show available commands.
 
 ### Create a collection (required before first refresh)
 
