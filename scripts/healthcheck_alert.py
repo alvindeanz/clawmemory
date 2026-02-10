@@ -6,6 +6,8 @@ Supports multiple alert backends:
   - Generic Webhook (Slack, Discord, custom)
   - Microsoft Teams (via Graph API)
 
+Zero external dependencies - uses only Python standard library.
+
 Environment Variables:
   CLAWMEMORY_STATE_DIR    - State directory (default: ~/.clawmemory)
   ALERT_BACKEND           - "webhook" or "teams" (default: webhook)
@@ -19,8 +21,9 @@ Environment Variables:
 import os
 import json
 import sys
-import requests
-from datetime import datetime
+from urllib.request import Request, urlopen
+from urllib.error import URLError, HTTPError
+from urllib.parse import urlencode
 
 # Configuration
 STATE_DIR = os.path.expanduser(os.getenv('CLAWMEMORY_STATE_DIR', '~/.clawmemory'))
@@ -48,25 +51,50 @@ def load_state():
         return json.load(f)
 
 
-def send_webhook_alert(message: str):
+def http_post_json(url: str, data: dict, headers: dict = None) -> dict:
+    """Make a POST request with JSON body using only stdlib."""
+    headers = headers or {}
+    headers['Content-Type'] = 'application/json'
+    
+    body = json.dumps(data).encode('utf-8')
+    req = Request(url, data=body, headers=headers, method='POST')
+    
+    with urlopen(req, timeout=15) as resp:
+        response_body = resp.read().decode('utf-8')
+        if response_body:
+            return json.loads(response_body)
+        return {}
+
+
+def http_post_form(url: str, data: dict) -> dict:
+    """Make a POST request with form-encoded body using only stdlib."""
+    body = urlencode(data).encode('utf-8')
+    req = Request(url, data=body, method='POST')
+    req.add_header('Content-Type', 'application/x-www-form-urlencoded')
+    
+    with urlopen(req, timeout=15) as resp:
+        return json.loads(resp.read().decode('utf-8'))
+
+
+def send_webhook_alert(message: str) -> bool:
     """Send alert via generic webhook (Slack/Discord/custom)."""
     if not WEBHOOK_URL:
         print("[WARN] ALERT_WEBHOOK_URL not set, skipping alert")
         return False
     
-    # Try Slack/Discord format first
+    # Payload works for both Slack and Discord
     payload = {"text": message, "content": message}
+    
     try:
-        r = requests.post(WEBHOOK_URL, json=payload, timeout=10)
-        r.raise_for_status()
-        print(f"[OK] Webhook alert sent")
+        http_post_json(WEBHOOK_URL, payload)
+        print("[OK] Webhook alert sent")
         return True
-    except Exception as e:
+    except (URLError, HTTPError) as e:
         print(f"[ERROR] Webhook failed: {e}", file=sys.stderr)
         return False
 
 
-def send_teams_alert(message: str):
+def send_teams_alert(message: str) -> bool:
     """Send alert via Microsoft Teams Graph API."""
     cfg = TEAMS_CONFIG
     missing = [k for k, v in cfg.items() if not v]
@@ -84,25 +112,23 @@ def send_teams_alert(message: str):
             'client_secret': cfg['client_secret'],
             'scope': 'https://graph.microsoft.com/.default'
         }
-        token_resp = requests.post(token_url, data=token_data, timeout=10)
-        token_resp.raise_for_status()
-        access_token = token_resp.json()['access_token']
+        token_resp = http_post_form(token_url, token_data)
+        access_token = token_resp['access_token']
         
         # Send message
         msg_url = f"https://graph.microsoft.com/v1.0/teams/{cfg['team_id']}/channels/{cfg['channel_id']}/messages"
-        headers = {'Authorization': f'Bearer {access_token}', 'Content-Type': 'application/json'}
+        headers = {'Authorization': f'Bearer {access_token}'}
         payload = {'body': {'content': message}}
-        msg_resp = requests.post(msg_url, headers=headers, json=payload, timeout=10)
-        msg_resp.raise_for_status()
+        http_post_json(msg_url, payload, headers)
         
-        print(f"[OK] Teams alert sent")
+        print("[OK] Teams alert sent")
         return True
-    except Exception as e:
+    except (URLError, HTTPError, KeyError) as e:
         print(f"[ERROR] Teams alert failed: {e}", file=sys.stderr)
         return False
 
 
-def send_alert(message: str):
+def send_alert(message: str) -> bool:
     """Send alert via configured backend."""
     if ALERT_BACKEND == 'teams':
         return send_teams_alert(message)
@@ -119,12 +145,14 @@ def main():
     
     failures = state.get('failures', 0)
     last_failure = state.get('last_failure', 'unknown')
+    last_error = state.get('last_error', 'unknown')
     
     if failures >= THRESHOLD:
         message = (
             f"⚠️ **ClawMemory Alert**\n"
             f"QMD refresh failed {failures} times consecutively.\n"
             f"Last failure: {last_failure}\n"
+            f"Error: {last_error}\n"
             f"Please check logs and run manually."
         )
         send_alert(message)

@@ -1,1 +1,5 @@
-requests>=2.25
+# ClawMemory has zero external dependencies!
+# All scripts use only Python standard library.
+#
+# This file exists for compatibility with pip workflows,
+# but you don't need to install anything.

@@ -33,10 +33,12 @@ ClawMemory is a lightweight, open-source memory synchronization toolkit for AI a
 
 ## ✨ Features
 
+- **Zero Python dependencies**: Uses only standard library—no `pip install` needed
 - **Nightly full refresh**: Runs `qmd update && qmd embed` to keep semantic index fresh
+- **Pre-flight checks**: Validates collection exists before refresh, fails loudly if not
 - **Flexible alerts**: Webhook (Slack/Discord) or Microsoft Teams
 - **Failure tracking**: Auto-alerts after N consecutive failures
-- **Zero dependencies on specific AI platforms**: Works with any agent that uses markdown files
+- **Works with any agent**: Platform-agnostic, just needs markdown files
 
 ---
 
@@ -70,13 +72,9 @@ git clone https://github.com/alvindeanz/clawmemory.git
 cd clawmemory
 ```
 
-### 2. Install Python dependencies
+### 2. Configure environment variables
 
-```bash
-pip install -r requirements.txt
-```
-
-### 3. Configure environment variables
+> 💡 **No `pip install` needed!** Scripts use only Python standard library.
 
 ```bash
 # State directory (optional, default: ~/.clawmemory)
@@ -106,13 +104,13 @@ export TEAM_CHANNEL_ID=your-channel-id
 ```
 </details>
 
-### 4. Make scripts executable
+### 3. Make scripts executable
 
 ```bash
 chmod +x scripts/qmd_refresh.py scripts/healthcheck_alert.py
 ```
 
-### 5. Set up cron job
+### 4. Set up cron job
 
 ```bash
 crontab -e
@@ -125,7 +123,7 @@ Add:
 0 23 * * * cd /path/to/workspace && /path/to/clawmemory/scripts/qmd_refresh.py && /path/to/clawmemory/scripts/healthcheck_alert.py
 ```
 
-### 6. Enjoy persistent AI memory! 🎉
+### 5. Enjoy persistent AI memory! 🎉
 
 ---
 
