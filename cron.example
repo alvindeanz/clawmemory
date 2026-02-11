@@ -1,0 +1,23 @@
+# ClawMemory Cron Configuration
+# Copy these lines to your crontab: crontab -e
+
+# ============================================
+# Option A: Using workspace wrapper scripts
+# ============================================
+
+# Nightly memory refresh (23:00 local time)
+0 23 * * * cd /path/to/workspace && ./scripts/memory-refresh >> logs/memory-refresh.log 2>&1 && ./scripts/memory-healthcheck
+
+# ============================================
+# Option B: Direct clawmemory scripts
+# ============================================
+
+# Nightly memory refresh (23:00 local time)
+# 0 23 * * * cd /path/to/workspace && python3 clawmemory/scripts/qmd_refresh.py >> logs/memory-refresh.log 2>&1 && python3 clawmemory/scripts/healthcheck_alert.py
+
+# ============================================
+# Optional: Weekly knowledge compound
+# ============================================
+
+# Weekly memory distillation (Sunday 22:00)
+# 0 22 * * 0 cd /path/to/workspace && ./scripts/memory-weekly-compound >> logs/memory-weekly.log 2>&1

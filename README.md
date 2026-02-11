@@ -2,6 +2,9 @@
 
 ✨ **DreamClaw your AI's memory**—pack it every night so your agent never forgets a thing! ✨
 
+> ⚠️ **CRITICAL**: Your workspace MUST be persisted (git push or Docker volume).  
+> If the container dies and workspace isn't backed up, your memory is gone forever.
+
 ClawMemory is a lightweight, open-source memory synchronization toolkit for AI agents. Inspired by how humans consolidate memories during sleep, it implements a **three-layer architecture** that keeps your agent's context fresh without overloading prompt windows.
 
 ---
@@ -117,6 +120,8 @@ chmod +x scripts/qmd_refresh.py scripts/healthcheck_alert.py
 
 ### 4. Set up cron job
 
+**Option A: System cron (universal)**
+
 ```bash
 crontab -e
 ```
@@ -125,8 +130,33 @@ Add:
 
 ```cron
 # Nightly QMD refresh (23:00 local time)
-0 23 * * * cd /path/to/workspace && /path/to/clawmemory/scripts/qmd_refresh.py && /path/to/clawmemory/scripts/healthcheck_alert.py
+0 23 * * * cd /path/to/workspace && ./scripts/memory-refresh && ./scripts/memory-healthcheck
 ```
+
+Or copy from the provided template: `cp cron.example /etc/cron.d/clawmemory`
+
+<details>
+<summary>📋 Option B: Clawdbot cron (integrated)</summary>
+
+Add to your Clawdbot config (`clawdbot gateway config.patch`):
+
+```json
+{
+  "cron": {
+    "jobs": [
+      {
+        "name": "Nightly Memory Refresh",
+        "schedule": { "kind": "cron", "expr": "0 23 * * *", "tz": "Pacific/Auckland" },
+        "payload": {
+          "kind": "agentTurn",
+          "message": "Run ./scripts/memory-refresh && ./scripts/memory-healthcheck, report any errors."
+        }
+      }
+    ]
+  }
+}
+```
+</details>
 
 ### 5. Enjoy persistent AI memory! 🎉
 
@@ -139,13 +169,18 @@ your-workspace/
 ├── MEMORY.md              # Curated long-term memory (injected every session)
 ├── AGENTS.md              # Agent behavior rules
 ├── memory/
-│   ├── 2026-02-07.md      # Daily logs
-│   ├── 2026-02-08.md
-│   ├── 2026-02-09.md
-│   └── projects.md        # Long-term reference files
+│   ├── YYYY-MM-DD.md      # Daily logs (append-only)
+│   ├── projects.md        # Long-term project notes
+│   └── incidents.md       # Incident runbook & recovery steps
+├── scripts/
+│   ├── memory-refresh     # Wrapper: refresh semantic index
+│   └── memory-healthcheck # Wrapper: check & alert on failures
+├── clawmemory/            # ClawMemory toolkit (this repo)
 └── .clawmemory/           # State files (auto-created)
     └── refresh_state.json
 ```
+
+> 💡 **Portability**: Move the workspace → move the memory. Any agent recognizing this structure can use the same memory system.
 
 ---
 
